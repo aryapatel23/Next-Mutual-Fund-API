@@ -1,76 +1,58 @@
-// src/lib/sipCalculator.ts
-import { differenceInDays, parseISO } from "date-fns";
+import dayjs from "dayjs";
 
-interface SIPInput {
-  amount: number;            // SIP amount
-  frequency: "monthly";      // extend later if needed
-  from: string;              // YYYY-MM-DD
-  to: string;                // YYYY-MM-DD
-  navHistory: { date: string; nav: number }[];
-}
-
-interface SIPResult {
+export interface SipResult {
   totalInvested: number;
   totalUnits: number;
   currentValue: number;
   absoluteReturn: number;
   annualizedReturn: number;
-  timeline: { date: string; value: number }[];
+  growthOverTime: { date: string; value: number }[];
 }
 
-/**
- * Find nearest NAV <= given date
- */
-function findNearestNAV(navHistory: { date: string; nav: number }[], targetDate: string) {
-  const target = parseISO(targetDate);
-  for (let entry of navHistory) {
-    const entryDate = parseISO(entry.date);
-    if (entryDate <= target && entry.nav > 0) {
-      return entry;
-    }
-  }
-  return null;
-}
+export function calculateSIP(
+  navHistory: { date: string; nav: number }[],
+  amount: number,
+  frequency: "monthly" | "quarterly",
+  from: string,
+  to: string
+): SipResult {
+  navHistory.sort((a, b) => dayjs(a.date).unix() - dayjs(b.date).unix());
 
-/**
- * SIP Calculator
- */
-export function calculateSIP(input: SIPInput): SIPResult {
-  const { amount, from, to, navHistory } = input;
+  const startDate = dayjs(from);
+  const endDate = dayjs(to);
+  const growthOverTime: { date: string; value: number }[] = [];
 
-  let totalInvested = 0;
   let totalUnits = 0;
-  let timeline: { date: string; value: number }[] = [];
+  let totalInvested = 0;
 
-  let start = parseISO(from);
-  let end = parseISO(to);
+  let sipDate = startDate;
 
-  let current = new Date(start);
+  while (sipDate.isBefore(endDate) || sipDate.isSame(endDate)) {
+    // Find NAV for the SIP date or nearest earlier date
+    const navEntry = [...navHistory]
+      .reverse()
+      .find((entry) => dayjs(entry.date).isBefore(sipDate.add(1, "day")));
 
-  while (current <= end) {
-    const isoDate = current.toISOString().split("T")[0];
-    const navEntry = findNearestNAV(navHistory, isoDate);
-
-    if (navEntry) {
+    if (navEntry && navEntry.nav > 0) {
       const units = amount / navEntry.nav;
       totalUnits += units;
       totalInvested += amount;
-      timeline.push({ date: isoDate, value: totalUnits * navEntry.nav });
+      growthOverTime.push({
+        date: sipDate.format("YYYY-MM-DD"),
+        value: totalUnits * navEntry.nav,
+      });
     }
 
-    // move to next month
-    current.setMonth(current.getMonth() + 1);
+    sipDate = frequency === "monthly" ? sipDate.add(1, "month") : sipDate.add(3, "month");
   }
 
-  const latestNAV = navHistory[0]; // navHistory is usually sorted latest → oldest
-  const currentValue = totalUnits * latestNAV.nav;
+  const latestNav = navHistory[0]?.nav || 0; // Latest NAV (assume first entry after sort)
 
+  const currentValue = totalUnits * latestNav;
   const absoluteReturn = ((currentValue - totalInvested) / totalInvested) * 100;
 
-  const days = differenceInDays(end, start);
-  const years = days / 365;
-  const annualizedReturn =
-    years > 0 ? (Math.pow(currentValue / totalInvested, 1 / years) - 1) * 100 : 0;
+  const years = endDate.diff(startDate, "year", true);
+  const annualizedReturn = years > 0 ? (Math.pow(currentValue / totalInvested, 1 / years) - 1) * 100 : 0;
 
   return {
     totalInvested,
@@ -78,6 +60,6 @@ export function calculateSIP(input: SIPInput): SIPResult {
     currentValue,
     absoluteReturn,
     annualizedReturn,
-    timeline,
+    growthOverTime,
   };
 }

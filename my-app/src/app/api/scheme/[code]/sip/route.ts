@@ -1,30 +1,57 @@
-// src/app/api/scheme/[code]/sip/route.ts
 import { NextResponse } from "next/server";
-import { getScheme } from "@/lib/api";
 import { calculateSIP } from "@/lib/sipCalculator";
 
-interface Params {
-  params: { code: string };
-}
-
-export async function POST(req: Request, { params }: Params) {
+export async function POST(req: Request) {
   try {
-    const { code } = params;
-    const body = await req.json();
+    const { amount, frequency, from, to } = await req.json();
 
-    const scheme = await getScheme(code);
-    const navHistory = scheme.data.map((d: any) => ({
-      date: d.date,
-      nav: parseFloat(d.nav),
+    const codeMatch = req.url.match(/\/scheme\/(\d+)\/sip/);
+    const code = codeMatch ? codeMatch[1] : null;
+
+    if (!code) {
+      return NextResponse.json(
+        { error: "Missing scheme code" },
+        { status: 400 }
+      );
+    }
+
+    const res = await fetch(`https://api.mfapi.in/mf/${code}`);
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: "Failed to fetch scheme data" },
+        { status: 500 }
+      );
+    }
+
+    const data = await res.json();
+
+    if (!data.data || data.data.length === 0) {
+      return NextResponse.json(
+        { error: "NAV history not found" },
+        { status: 404 }
+      );
+    }
+
+    const navHistory = data.data.map((entry: any) => ({
+      date: entry.date,
+      nav: parseFloat(entry.nav),
     }));
 
-    const result = calculateSIP({
-      ...body,
-      navHistory,
-    });
+    const result = calculateSIP(navHistory, amount, frequency, from, to);
 
-    return NextResponse.json(result);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({
+      totalInvested: result.totalInvested || 0,
+      currentValue: result.currentValue || 0,
+      totalUnits: result.totalUnits || 0,
+      absoluteReturn: result.absoluteReturn || 0,
+      annualizedReturn: result.annualizedReturn || 0,
+      growthOverTime: result.growthOverTime || [],
+    });
+  } catch (error) {
+    console.error("Error in SIP calculation:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

@@ -1,3 +1,4 @@
+// app/funds/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,6 +9,8 @@ import {
   CircularProgress,
   TextField,
   Pagination,
+  Paper,
+  Box,
 } from "@mui/material";
 import FundCard from "@/components/FundCard";
 import { Scheme } from "@/types/scheme";
@@ -27,10 +30,12 @@ export default function FundsPage() {
       try {
         const res = await fetch(`/api/mf?page=${page}&limit=${limit}`);
         const data = await res.json();
-        setFunds(data.funds);
-        setTotalPages(Math.ceil(data.total / limit));
+        setFunds(data.funds || []);
+        setTotalPages(Math.ceil((data.total || 0) / limit));
       } catch (error) {
         console.error("Error fetching funds:", error);
+        setFunds([]);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
@@ -43,9 +48,14 @@ export default function FundsPage() {
     fund.schemeName.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
+    setPage(value);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Typography variant="h4" fontWeight={600} gutterBottom>
         Mutual Fund Explorer
       </Typography>
 
@@ -56,14 +66,35 @@ export default function FundsPage() {
         fullWidth
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        sx={{ mb: 4 }}
+        sx={{ mb: 4, maxWidth: 600 }}
+        slotProps={{
+          input: {
+            sx: { py: 1.2 },
+          },
+        }}
       />
 
       {loading ? (
-        <CircularProgress />
+        <Box sx={{ display: "flex", justifyContent: "center", my: 6 }}>
+          <CircularProgress size={40} />
+        </Box>
+      ) : filteredFunds.length === 0 ? (
+        <Paper
+          sx={{
+            p: 6,
+            textAlign: "center",
+            backgroundColor: "grey.50",
+          }}
+        >
+          <Typography variant="body1" color="text.secondary">
+            {search
+              ? "No funds match your search."
+              : "No funds available at the moment."}
+          </Typography>
+        </Paper>
       ) : (
         <>
-          <Grid container spacing={2}>
+          <Grid container spacing={3}>
             {filteredFunds.map((fund) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={fund.schemeCode}>
                 <FundCard fund={fund} />
@@ -72,12 +103,20 @@ export default function FundsPage() {
           </Grid>
 
           {/* Pagination */}
-          <Pagination
-            count={totalPages}
-            page={page}
-            onChange={(_, value) => setPage(value)}
-            sx={{ mt: 4 }}
-          />
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 5 }}>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={handlePageChange}
+              color="primary"
+              size="medium"
+              sx={{
+                "& .MuiPaginationItem-root": {
+                  borderRadius: "8px",
+                },
+              }}
+            />
+          </Box>
         </>
       )}
     </Container>

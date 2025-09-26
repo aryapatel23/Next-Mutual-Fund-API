@@ -9,6 +9,7 @@ export function formatDate(date: string | Date): string {
   return `${day}-${month}-${year}`;
 }
 
+
 // ✅ Format currency (Indian Rupees style)
 export function formatCurrency(value: number, currency: string = "INR"): string {
   return new Intl.NumberFormat("en-IN", {
@@ -19,9 +20,11 @@ export function formatCurrency(value: number, currency: string = "INR"): string 
 }
 
 // ✅ Convert a number to percentage with 2 decimals
-export function formatPercent(value: number): string {
-  return `${value.toFixed(2)}%`;
+export function formatPercent(value?: number, decimals = 2) {
+  if (typeof value !== "number" || isNaN(value)) return "-";
+  return `${value.toFixed(decimals)}%`;
 }
+
 
 // ✅ Calculate CAGR (Compound Annual Growth Rate)
 export function calculateCAGR(
