@@ -7,7 +7,7 @@ export default function NavChart({ data }: { data: { date: string; nav: number }
     <LineChart
       xAxis={[{ data: data.map((d) => d.date), scaleType: "point" }]}
       series={[{ data: data.map((d) => d.nav), label: "NAV" }]}
-      width={600}
+      width={1000}
       height={300}
     />
   );
