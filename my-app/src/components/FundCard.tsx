@@ -1,4 +1,3 @@
-// components/FundCard.tsx
 "use client";
 
 import {
@@ -7,80 +6,117 @@ import {
   CardContent,
   Typography,
   Box,
-  Avatar,
+  Chip,
+  useTheme,
 } from "@mui/material";
-import { AccountBalance as FundIcon } from "@mui/icons-material";
+import { TrendingUp as GrowthIcon, AccountBalance as FundIcon } from "@mui/icons-material";
 import Link from "next/link";
 
+// Optional: Map scheme categories to colors (if your fund data includes category)
+const getCategoryColor = (category: string) => {
+  const theme = useTheme();
+  const map: Record<string, string> = {
+    equity: theme.palette.success.main,
+    debt: theme.palette.info.main,
+    hybrid: theme.palette.warning.main,
+    "elss": theme.palette.primary.main,
+  };
+  return map[category?.toLowerCase()] || theme.palette.grey[500];
+};
+
 export default function FundCard({ fund }: { fund: any }) {
+  // Optional: Extract category from fund name or add it in your data
+  const category = fund.category || "equity"; // fallback
+
   return (
     <Card
+      elevation={0}
       sx={{
         height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        borderRadius: 2,
-        boxShadow: 2,
-        transition: "box-shadow 0.3s ease-in-out",
+        borderRadius: 2.5,
+        border: (theme) => `1px solid ${theme.palette.divider}`,
+        transition: "transform 0.2s, box-shadow 0.2s",
         "&:hover": {
-          boxShadow: 4,
+          transform: "translateY(-4px)",
+          boxShadow: (theme) => `0 8px 20px ${theme.palette.grey[200]}`,
+          borderColor: (theme) => theme.palette.primary.main,
         },
+        overflow: "visible",
       }}
     >
-      <Link href={`/scheme/${fund.schemeCode}`} passHref legacyBehavior>
+         <Link href={`/scheme/${fund.schemeCode}`} passHref legacyBehavior>
         <CardActionArea
           sx={{
-            height: "100%",
+            p: 2.5,
             display: "flex",
             flexDirection: "column",
-            justifyContent: "center",
-            p: 2,
+            alignItems: "flex-start",
+            height: "100%",
           }}
         >
-          <CardContent sx={{ flex: "1 0 auto", p: 0, textAlign: "center" }}>
-            <Avatar
-              sx={{
-                bgcolor: "primary.light",
-                color: "primary.main",
-                width: 48,
-                height: 48,
-                mb: 1.5,
-                mx: "auto",
-              }}
-            >
-              <FundIcon />
-            </Avatar>
-            <Typography
-              variant="h6"
-              fontWeight="600"
-              component="div"
-              sx={{
-                lineHeight: 1.3,
-                mb: 0.5,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-              }}
-            >
-              {fund.schemeName}
-            </Typography>
+          
+
+          {/* Fund Icon */}
+          <Box
+            sx={{
+              width: 42,
+              height: 42,
+              borderRadius: "12px",
+              bgcolor: (theme) => `${theme.palette.primary.main}08`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mb: 1.5,
+            }}
+          >
+            <FundIcon sx={{ color: "primary.main", fontSize: 24 }} />
+          </Box>
+
+          {/* Fund Name */}
+          <Typography
+            variant="subtitle1"
+            fontWeight={600}
+            sx={{
+              lineHeight: 1.4,
+              mb: 1,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              minHeight: 44, // ensures consistent height
+            }}
+          >
+            {fund.schemeName}
+          </Typography>
+
+          {/* Scheme Code */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.75,
+              mt: "auto",
+              pt: 1,
+              borderTop: (theme) => `1px dashed ${theme.palette.divider}`,
+              width: "100%",
+            }}
+          >
             <Box
               sx={{
-                display: "inline-block",
-                backgroundColor: "rgba(0, 0, 0, 0.06)",
-                px: 1.2,
-                py: 0.4,
-                borderRadius: 1,
-                mt: 1,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.5,
+                color: "text.secondary",
+                fontSize: "0.8125rem",
               }}
             >
-              <Typography variant="caption" fontWeight="500" color="text.secondary">
+              <GrowthIcon sx={{ fontSize: 16, color: "success.main" }} />
+              <Typography component="span" variant="caption">
                 {fund.schemeCode}
               </Typography>
             </Box>
-          </CardContent>
+          </Box>
         </CardActionArea>
       </Link>
     </Card>
